@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        body.dark-mode {
+            background-color: #333;
+            color: #fff;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        body.dark-mode h1 {
+            color: #fff;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            gap: 5px;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            font-size: 24px;
+            text-align: center;
+            line-height: 100px;
+            background-color: #fff;
+            cursor: pointer;
+            border: 1px solid #ccc;
+        }
+
+        .cell:hover {
+            background-color: #e0e0e0;
+        }
+
+        .cell.x {
+            color: #e74c3c;
+        }
+
+        .cell.o {
+            color: #3498db;
+        }
+
+        #score {
+            margin-top: 20px;
+        }
+
+        /* Style for AI Difficulty elements */
+        #ai-difficulty {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #ai-difficulty label {
+            margin-bottom: 5px;
+        }
+
+        #ai-difficulty select {
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tic-Tac-Toe</h1>
+        <div class="board" id="board">
+            <div class="cell" onclick="makeMove(0, 0)"></div>
+            <div class="cell" onclick="makeMove(0, 1)"></div>
+            <div class="cell" onclick="makeMove(0, 2)"></div>
+            <div class="cell" onclick="makeMove(1, 0)"></div>
+            <div class="cell" onclick="makeMove(1, 1)"></div>
+            <div class="cell" onclick="makeMove(1, 2)"></div>
+            <div class="cell" onclick="makeMove(2, 0)"></div>
+            <div class="cell" onclick="makeMove(2, 1)"></div>
+            <div class="cell" onclick="makeMove(2, 2)"></div>
+        </div>
+        <p id="winner"></p>
+        <button onclick="resetBoard()">Reset</button>
+        <div id="ai-difficulty">
+            <label for="difficulty">AI Difficulty Mode:</label>
+            <select id="difficulty" onchange="changeDifficulty()">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+            </select>
+        </div>
+        <div id="score">
+            <p>Player X: <span id="playerXScore">0</span></p>
+            <p>Player O: <span id="playerOScore">0</span></p>
+        </div>
+        <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
+    </div>
+
+    <script>
+        let currentPlayer = 'X';
+        let board = [
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', '']
+        ];
+        let difficulty = 'easy';
+        let playerXScore = 0;
+        let playerOScore = 0;
+
+        function changeDifficulty() {
+            difficulty = document.getElementById('difficulty').value;
+            resetBoard();
+        }
+
+        function makeMove(row, col) {
+            if (board[row][col] === '' && !getWinner()) {
+                board[row][col] = 'X';
+                document.getElementById('board').children[row * 3 + col].textContent = 'X';
+                document.getElementById('board').children[row * 3 + col].classList.add('x');
+                let winner = getWinner();
+                if (winner) {
+                    document.getElementById('winner').textContent = `Player ${winner} wins!`;
+                    updateScore(winner);
+                } else {
+                    // It's the AI's turn
+                    setTimeout(makeComputerMove, 1000); // Delay for 1 second before the AI moves
+                }
+            }
+        }
+
+        function makeComputerMove() {
+            if (!getWinner()) {
+                let emptyCells = [];
+                for (let row = 0; row < 3; row++) {
+                    for (let col = 0; col < 3; col++) {
+                        if (board[row][col] === '') {
+                            emptyCells.push({ row, col });
+                        }
+                    }
+                }
+
+                if (emptyCells.length > 0) {
+                    // Decide AI move based on difficulty
+                    const { row, col } = (difficulty === 'easy') ? getRandomMove(emptyCells) : (difficulty === 'medium') ? getMediumMove(emptyCells) : getBestMove(emptyCells);
+
+                    board[row][col] = 'O';
+                    document.getElementById('board').children[row * 3 + col].textContent = 'O';
+                    document.getElementById('board').children[row * 3 + col].classList.add('o');
+                    let winner = getWinner();
+                    if (winner) {
+                        document.getElementById('winner').textContent = `Player ${winner} wins!`;
+                        updateScore(winner);
+                    }
+                }
+            }
+        }
+
+        function getRandomMove(emptyCells) {
+            // Occasionally block the player if they are about to win
+            if (Math.random() < 0.3) {
+                for (const { row, col } of emptyCells) {
+                    board[row][col] = 'X';
+                    if (getWinner() === 'X') {
+                        board[row][col] = '';
+                        return { row, col };
+                    }
+                    board[row][col] = '';
+                }
+            }
+
+            const randomIndex = Math.floor(Math.random() * emptyCells.length);
+            return emptyCells[randomIndex];
+        }
+
+        function getMediumMove(emptyCells) {
+            // Occasionally block the player if they are about to win
+            if (Math.random() < 0.3) {
+                for (const { row, col } of emptyCells) {
+                    board[row][col] = 'X';
+                    if (getWinner() === 'X') {
+                        board[row][col] = '';
+                        return { row, col };
+                    }
+                    board[row][col] = '';
+                }
+            }
+
+            // Try to create a fork if possible
+            for (const { row, col } of emptyCells) {
+                board[row][col] = 'O';
+                const playerWinning = getWinner() === 'X';
+                board[row][col] = '';
+                if (playerWinning) {
+                    return { row, col };
+                }
+            }
+
+            // If none of the above, make a random move
+            const randomIndex = Math.floor(Math.random() * emptyCells.length);
+            return emptyCells[randomIndex];
+        }
+
+        function getBestMove(emptyCells) {
+            // Check if the AI can win
+            for (const { row, col } of emptyCells) {
+                board[row][col] = 'O';
+                if (getWinner() === 'O') {
+                    board[row][col] = '';
+                    return { row, col };
+                }
+                board[row][col] = '';
+            }
+
+            // Check if the player can win and block them
+            for (const { row, col } of emptyCells) {
+                board[row][col] = 'X';
+                if (getWinner() === 'X') {
+                    board[row][col] = '';
+                    return { row, col };
+                }
+                board[row][col] = '';
+            }
+
+            // If no winning move, make a random move
+            return getRandomMove(emptyCells);
+        }
+
+        function resetBoard() {
+            currentPlayer = 'X';
+            board = [
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', '']
+            ];
+            for (let cell of document.querySelectorAll('.cell')) {
+                cell.textContent = '';
+                cell.classList.remove('x', 'o');
+            }
+            document.getElementById('winner').textContent = '';
+
+            // If the AI's turn, let it make a move again
+            if (currentPlayer === 'O') {
+                setTimeout(makeComputerMove, 1000);
+            }
+        }
+
+        function getWinner() {
+            for (let i = 0; i < 3; i++) {
+                if (board[i][0] === board[i][1] && board[i][1] === board[i][2] && board[i][0] !== '') {
+                    return board[i][0];
+                }
+                if (board[0][i] === board[1][i] && board[1][i] === board[2][i] && board[0][i] !== '') {
+                    return board[0][i];
+                }
+            }
+            if (board[0][0] === board[1][1] && board[1][1] === board[2][2] && board[0][0] !== '') {
+                return board[0][0];
+            }
+            if (board[0][2] === board[1][1] && board[1][1] === board[2][0] && board[0][2] !== '') {
+                return board[0][2];
+            }
+            return null;
+        }
+
+        function updateScore(winner) {
+            if (winner === 'X') {
+                playerXScore++;
+                document.getElementById('playerXScore').textContent = playerXScore;
+            } else if (winner === 'O') {
+                playerOScore++;
+                document.getElementById('playerOScore').textContent = playerOScore;
+            }
+        }
+
+        function toggleDarkMode() {
+            const body = document.body;
+            body.classList.toggle('dark-mode');
+        }
+    </script>
+</body>
+</html>
